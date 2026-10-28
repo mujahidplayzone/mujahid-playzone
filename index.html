@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mujahid PlayZone</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { color: #38e7a5; }
+    .games {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+      max-width: 600px;
+      margin: 25px auto;
+    }
+    button {
+      background: #26364d;
+      color: white;
+      border: 2px solid #38e7a5;
+      border-radius: 12px;
+      padding: 18px 10px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    #game {
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 15px;
+      background: #1c293b;
+      border-radius: 12px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    #board button { font-size: 28px; padding: 15px; }
+  </style>
+</head>
+<body>
+  <h1>🎮 Mujahid PlayZone</h1>
+  <p>Free games. Endless fun!</p>
+
+  <div class="games">
+    <button onclick="snake()">🐍 Snake</button>
+    <button onclick="tic()">❌ Tic-Tac-Toe</button>
+    <button onclick="memory()">🧠 Memory Match</button>
+  </div>
+
+  <div id="game">
+    <h2>Welcome, Player!</h2>
+    <p>Choose a game above to start playing.</p>
+  </div>
+
+  <script>
+    const game = document.getElementById('game');
+
+    function tic() {
+      let cells = Array(9).fill('');
+      let turn = 'X';
+      game.innerHTML = '<h2>Tic-Tac-Toe</h2><div id="board"></div><p id="status">Your turn: X</p><button onclick="tic()">Restart</button>';
+      const board = document.getElementById('board');
+      cells.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.onclick = () => {
+          if (cells[i] || winner()) return;
+          cells[i] = turn;
+          b.textContent = turn;
+          if (winner()) {
+            document.getElementById('status').textContent = turn + ' wins!';
+          } else if (cells.every(Boolean)) {
+            document.getElementById('status').textContent = 'Draw!';
+          } else {
+            turn = turn === 'X' ? 'O' : 'X';
+            document.getElementById('status').textContent = 'Your turn: ' + turn;
+          }
+        };
+        board.appendChild(b);
+      });
+      function winner() {
+        return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]
+          .some(([a,b,c]) => cells[a] && cells[a] === cells[b] && cells[b] === cells[c]);
+      }
+    }
+
+    function memory() {
+      const cards = ['🍎','🚀','🐱','⚽','🍎','🚀','🐱','⚽'].sort(() => Math.random() - 0.5);
+      let first = null, lock = false, matched = 0;
+      game.innerHTML = '<h2>Memory Match</h2><div id="board"></div><p id="status">Find matching pairs!</p><button onclick="memory()">Restart</button>';
+      const board = document.getElementById('board');
+      cards.forEach((emoji, i) => {
+        const b = document.createElement('button');
+        b.textContent = '❔';
+        b.onclick = () => {
+          if (lock || b.dataset.open || b.dataset.done) return;
+          b.textContent = emoji;
+          b.dataset.open = 'yes';
+          if (!first) { first = b; return; }
+          if (first.textContent === b.textContent) {
+            first.dataset.done = b.dataset.done = 'yes';
+            matched += 2;
+            first = null;
+            document.getElementById('status').textContent = matched === 8 ? 'You won! 🎉' : 'Good match!';
+          } else {
+            lock = true;
+            const previous = first;
+            first = null;
+            setTimeout(() => {
+              previous.textContent = b.textContent = '❔';
+              delete previous.dataset.open;
+              delete b.dataset.open;
+              lock = false;
+            }, 700);
+          }
+        };
+        board.appendChild(b);
+      });
+    }
+
+    function snake() {
+      game.innerHTML = '<h2>Snake</h2><p>Use the arrow buttons to move. Collect the red food!</p><canvas id="canvas" width="300" height="300" style="max-width:100%;background:#07101b"></canvas><p id="score">Score: 0</p><div><button onclick="direction(0,-1)">⬆️</button><br><button onclick="direction(-1,0)">⬅️</button><button onclick="direction(0,1)">⬇️</button><button onclick="direction(1,0)">➡️</button></div><button onclick="snake()">Restart</button>';
+      const c = document.getElementById('canvas'), ctx = c.getContext('2d');
+      let s = [{x:5,y:5}], food = {x:10,y:10}, dx = 1, dy = 0, score = 0, alive = true;
+      function draw() {
+        if (!alive) return;
+        ctx.fillStyle = '#07101b'; ctx.fillRect(0,0,300,300);
+        ctx.fillStyle = '#ff4d5a'; ctx.fillRect(food.x*15,food.y*15,14,14);
+        ctx.fillStyle = '#38e7a5';
+        s.forEach(p => ctx.fillRect(p.x*15,p.y*15,14,14));
+        const head = {x:s[0].x+dx,y:s[0].y+dy};
+        if (head.x<0||head.y<0||head.x>=20||head.y>=20||s.some(p=>p.x===head.x&&p.y===head.y)) {
+          alive = false; document.getElementById('score').textContent = 'Game over! Score: '+score; return;
+        }
+        s.unshift(head);
+        if(head.x===food.x&&head.y===food.y) {
+          score++; document.getElementById('score').textContent='Score: '+score;
+          food={x:Math.floor(Math.random()*20),y:Math.floor(Math.random()*20)};
+        } else s.pop();
+      }
+      window.direction = (x,y) => { if(x!==-dx||y!==-dy){dx=x;dy=y;} };
+      const timer = setInterval(() => {
+        if (!alive) { clearInterval(timer); return; }
+        draw();
+      }, 180);
+    }
+  </script>
+</body>
+</html>
